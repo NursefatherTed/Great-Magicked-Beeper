@@ -7,7 +7,10 @@
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// Hardware Pins
 #define BUTTON_PIN 4 
+#define LED_PIN 2
+#define BUZZER_PIN 5
 
 bool isTyping = false;
 
@@ -24,7 +27,11 @@ const int numScripts = sizeof(scriptLibrary) / sizeof(scriptLibrary[0]);
 void setup() {
   Serial.begin(115200);
   
+  // Initialize Pins
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  
   randomSeed(analogRead(34));
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
@@ -32,8 +39,10 @@ void setup() {
     for(;;);
   }
 
-  // Set color with a background parameter to overwrite old pixels
   display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+  
+  // Turn on Idle LED
+  digitalWrite(LED_PIN, HIGH);
   
   // Initial standby screen
   display.clearDisplay();
@@ -46,6 +55,9 @@ void setup() {
 void loop() {
   if (digitalRead(BUTTON_PIN) == LOW && !isTyping) {
     isTyping = true;
+    
+    // Turn off Idle LED while processing
+    digitalWrite(LED_PIN, LOW);
     
     int scriptIndex = random(0, numScripts);
     
@@ -61,48 +73,56 @@ void loop() {
     display.print("> STANDBY...");
     display.display();
     
+    // Turn Idle LED back on
+    digitalWrite(LED_PIN, HIGH);
+    
     isTyping = false;
-    delay(500); 
+    delay(500); // Debounce
   }
 }
 
-// The decryption scramble logic
+// The decryption scramble logic WITH BUZZER SYNC
 void typeTextScramble(String text) {
-  int scrambleIterations = 5; // Number of garbage characters before the real one
+  int scrambleIterations = 5; 
   
   for(int i = 0; i < text.length(); i++) {
     char targetChar = text.charAt(i);
     
-    // Skip scrambling for spaces and newlines so the formatting doesn't break
     if (targetChar == ' ' || targetChar == '\n') {
       display.print(targetChar);
       display.display();
+      delay(30); // Slight pause for spaces
       continue;
     }
     
-    // Lock down the current cursor position
     int cursorX = display.getCursorX();
     int cursorY = display.getCursorY();
     
-    // Cycle through random ASCII characters
+    // Scramble loop with rapid buzzer clicks
     for(int j = 0; j < scrambleIterations; j++) {
+      // Fire buzzer pulse
+      digitalWrite(BUZZER_PIN, HIGH);
+      
       display.setCursor(cursorX, cursorY);
-      // Pick a random visible ASCII char (from '!' to '~')
       char randomChar = (char)random(33, 127); 
       display.print(randomChar);
       display.display();
-      delay(15); // Scramble speed
+      
+      delay(5); // Shorter delay while buzzer is high
+      
+      // Kill buzzer pulse
+      digitalWrite(BUZZER_PIN, LOW);
+      delay(10); // Rest of the scramble delay
     }
     
-    // Print the actual final character
+    // Lock in the final character
     display.setCursor(cursorX, cursorY);
     display.print(targetChar);
     display.display();
-    delay(30); // Pause before moving to the next letter
+    delay(30); 
   }
 }
 
-// Blinking underscore cursor
 void blinkCursor(int blinks) {
   for(int i = 0; i < blinks; i++) {
     int cursorX = display.getCursorX();
@@ -114,7 +134,7 @@ void blinkCursor(int blinks) {
     delay(400); 
     
     display.setCursor(cursorX, cursorY);
-    display.print(" "); // Overwrite with a space to erase
+    display.print(" "); 
     display.display();
     delay(400); 
   }
