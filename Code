@@ -1,0 +1,121 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define BUTTON_PIN 4 
+
+bool isTyping = false;
+
+// --- YOUR SCRIPT LIBRARY ---
+const char* scriptLibrary[] = {
+  "> INITIATING STEALTH PROTOCOL...\n> SHADOW STEP: READY.\n> EVASION CHANCE: 94%.\n> ROLL FOR INITIATIVE.",
+  "> ACCESSING MAINFRAME...\n> OVERRIDING FIREWALL...\n> ACCESS GRANTED.\n> DOWNLOADING PAYLOAD...",
+  "> CASTING: NECROTIC SHROUD...\n> MANA DEPLETING.\n> WARNING: CORRUPTION DETECTED.\n> CONTAINMENT FAILED.",
+  "> SYSTEM BOOT SEQUENCE...\n> RUNNING DIAGNOSTICS...\n> ALL SYSTEMS NOMINAL.\n> AWAITING INPUT..."
+};
+
+const int numScripts = sizeof(scriptLibrary) / sizeof(scriptLibrary[0]);
+
+void setup() {
+  Serial.begin(115200);
+  
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  randomSeed(analogRead(34));
+
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+
+  // Set color with a background parameter to overwrite old pixels
+  display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+  
+  // Initial standby screen
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("> STANDBY...");
+  display.display();
+}
+
+void loop() {
+  if (digitalRead(BUTTON_PIN) == LOW && !isTyping) {
+    isTyping = true;
+    
+    int scriptIndex = random(0, numScripts);
+    
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    
+    typeTextScramble(scriptLibrary[scriptIndex]);
+    
+    blinkCursor(4); 
+    
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.print("> STANDBY...");
+    display.display();
+    
+    isTyping = false;
+    delay(500); 
+  }
+}
+
+// The decryption scramble logic
+void typeTextScramble(String text) {
+  int scrambleIterations = 5; // Number of garbage characters before the real one
+  
+  for(int i = 0; i < text.length(); i++) {
+    char targetChar = text.charAt(i);
+    
+    // Skip scrambling for spaces and newlines so the formatting doesn't break
+    if (targetChar == ' ' || targetChar == '\n') {
+      display.print(targetChar);
+      display.display();
+      continue;
+    }
+    
+    // Lock down the current cursor position
+    int cursorX = display.getCursorX();
+    int cursorY = display.getCursorY();
+    
+    // Cycle through random ASCII characters
+    for(int j = 0; j < scrambleIterations; j++) {
+      display.setCursor(cursorX, cursorY);
+      // Pick a random visible ASCII char (from '!' to '~')
+      char randomChar = (char)random(33, 127); 
+      display.print(randomChar);
+      display.display();
+      delay(15); // Scramble speed
+    }
+    
+    // Print the actual final character
+    display.setCursor(cursorX, cursorY);
+    display.print(targetChar);
+    display.display();
+    delay(30); // Pause before moving to the next letter
+  }
+}
+
+// Blinking underscore cursor
+void blinkCursor(int blinks) {
+  for(int i = 0; i < blinks; i++) {
+    int cursorX = display.getCursorX();
+    int cursorY = display.getCursorY();
+    
+    display.setCursor(cursorX, cursorY);
+    display.print("_");
+    display.display();
+    delay(400); 
+    
+    display.setCursor(cursorX, cursorY);
+    display.print(" "); // Overwrite with a space to erase
+    display.display();
+    delay(400); 
+  }
+}
