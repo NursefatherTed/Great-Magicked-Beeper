@@ -16,10 +16,10 @@ bool isTyping = false;
 
 // --- YOUR SCRIPT LIBRARY ---
 const char* scriptLibrary[] = {
-  "> INITIATING STEALTH PROTOCOL...\n> SHADOW STEP: READY.\n> EVASION CHANCE: 94%.\n> ROLL FOR INITIATIVE.",
-  "> ACCESSING MAINFRAME...\n> OVERRIDING FIREWALL...\n> ACCESS GRANTED.\n> DOWNLOADING PAYLOAD...",
-  "> CASTING: NECROTIC SHROUD...\n> MANA DEPLETING.\n> WARNING: CORRUPTION DETECTED.\n> CONTAINMENT FAILED.",
-  "> SYSTEM BOOT SEQUENCE...\n> RUNNING DIAGNOSTICS...\n> ALL SYSTEMS NOMINAL.\n> AWAITING INPUT..."
+  "> INITIATING GROUND-RADAR SWEEP...\n> SURFACE TARGET DETECTED.\n> CALCULATING FIRING SOLUTION.\n> WEAPONS FREE.",
+  "> PID CONTROLLER: ONLINE.\n> CALIBRATING AZIMUTH MOTORS...\n> ERROR MARGIN < 0.02%.\n> AUTO-TRACKING ENGAGED.",
+  "> TIME-DIFFERENCE-OF-ARRIVAL: ACTIVE.\n> ACOUSTIC SIGNATURE MATCHED.\n> TRIANGULATING ORIGIN POINT...\n> COORDINATES LOCKED.",
+  "> SYSTEM BOOT SEQUENCE...\n> RUNNING HARDWARE DIAGNOSTICS...\n> ALL SYSTEMS NOMINAL.\n> AWAITING INPUT..."
 };
 
 const int numScripts = sizeof(scriptLibrary) / sizeof(scriptLibrary[0]);
@@ -30,7 +30,7 @@ void setup() {
   // Initialize Pins
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT); // Assumes Active Buzzer
   
   randomSeed(analogRead(34));
 
@@ -81,17 +81,24 @@ void loop() {
   }
 }
 
-// The decryption scramble logic WITH BUZZER SYNC
+// The decryption scramble logic WITH OPTIMIZED BUZZER SYNC
 void typeTextScramble(String text) {
   int scrambleIterations = 5; 
   
   for(int i = 0; i < text.length(); i++) {
     char targetChar = text.charAt(i);
     
-    if (targetChar == ' ' || targetChar == '\n') {
+    // Handle newlines silently (no screen redraw needed)
+    if (targetChar == '\n') {
+        display.print(targetChar);
+        continue;
+    }
+
+    // Handle spaces 
+    if (targetChar == ' ') {
       display.print(targetChar);
       display.display();
-      delay(30); // Slight pause for spaces
+      delay(30); 
       continue;
     }
     
@@ -100,19 +107,17 @@ void typeTextScramble(String text) {
     
     // Scramble loop with rapid buzzer clicks
     for(int j = 0; j < scrambleIterations; j++) {
-      // Fire buzzer pulse
+      // Crisp 2ms buzzer pulse isolated from the display render
       digitalWrite(BUZZER_PIN, HIGH);
+      delay(2); 
+      digitalWrite(BUZZER_PIN, LOW);
       
       display.setCursor(cursorX, cursorY);
       char randomChar = (char)random(33, 127); 
       display.print(randomChar);
       display.display();
       
-      delay(5); // Shorter delay while buzzer is high
-      
-      // Kill buzzer pulse
-      digitalWrite(BUZZER_PIN, LOW);
-      delay(10); // Rest of the scramble delay
+      delay(12); // Pacing the visual scramble
     }
     
     // Lock in the final character
